@@ -1,2 +1,3 @@
-# -MSVR_Practic
-practice repo
+# MSVR (METHOD OF SYNTHESIS OF VIRTUAL REALITY)
+
+Variant - #1
