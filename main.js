@@ -146,7 +146,8 @@ function draw() {
 
   /* Get the view matrix from the SimpleRotator object.*/
   defineAccelMat()
-  let modelView = m4.multiply(rotateBall.getViewMatrix(), matAccel);
+  // let modelView = m4.multiply(rotateBall.getViewMatrix(), matAccel);
+  let modelView = rotateBall.getViewMatrix();
   let modelView_bg = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
 
   let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.);
@@ -215,13 +216,19 @@ function draw() {
   //   map(userPoint.x, 0, 1, 0, 5),
   //   map(userPoint.y, 0, 1, 0, Math.PI * 2)
   // );
-  // gl.uniform3fv(shaderProgram.iTranslateSphere, [
-  //   translate.x,
-  //   translate.y,
-  //   translate.z,
-  // ]);
-  // gl.uniform1f(shaderProgram.iB, 1);
-  // sphere.DrawSphere();
+  let translate = [0.5 * sensor.x, 0.5 * sensor.y, (-0.5) * sensor.z]
+  if (panner) {
+    panner.setPosition(translate[0],
+      translate[1],
+      translate[2])
+  }
+  gl.uniform3fv(shaderProgram.iTranslateSphere, [
+    translate[0],
+    translate[1],
+    translate[2],
+  ]);
+  gl.uniform1f(shaderProgram.iB, 1);
+  sphere.DrawSphere();
 
 }
 
@@ -297,6 +304,7 @@ function initGL() {
   bg_surface.TextureBufferData([0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1])
 
   stereoCamera = new StereoCamera(30, 0.1, 1, 1.56, 5, 100)
+
 
   gl.enable(gl.DEPTH_TEST);
 }
@@ -418,7 +426,7 @@ function LoadTexture() {
   };
 }
 
-function CreateSphereSurface(r = 0.1) {
+function CreateSphereSurface(r = 0.6) {
   let vertexList = [];
   let lon = -Math.PI;
   let lat = -Math.PI * 0.5;
@@ -557,7 +565,8 @@ function init() {
   }
   try {
     initGL(); // Check condition initialize the WebGL context
-  } catch (e) {
+  }
+  catch (e) {
     console.log(e, "error loading webgl");
     document.getElementById("canvas-holder").innerHTML =
       "<p>Could'nt initialize the WebGL context :( </p>";
@@ -569,43 +578,6 @@ function init() {
   draw();
   constantUpdate()
 }
-
-window.addEventListener("keydown", function(event) {
-  switch (event.keyCode) {
-    case 37:
-      handleChangeLeft();
-    case 39:
-      handleChangeRight();
-      break;
-    default:
-      return;
-  }
-});
-
-window.onkeydown = (e) => {
-  switch (e.keyCode) {
-    case 87:
-      userPoint.y -= 0.01;
-      break;
-    case 83:
-      userPoint.y += 0.01;
-      break;
-    case 65:
-      userPoint.x += 0.01;
-      break;
-    case 68:
-      userPoint.x -= 0.01;
-      break;
-  }
-  userPoint.x = Math.max(0.01, Math.min(userPoint.x, 0.999));
-  userPoint.y = Math.max(0.01, Math.min(userPoint.y, 0.999));
-  draw();
-};
-
-// onmousemove = (e) => {
-//   magnit = map(e.clientX, 0, window.outerWidth, 0, Math.PI);
-//   draw();
-// };
 
 const lightCoordinates = () => {
   let coord = Math.sin(position) * 1.1;
@@ -640,4 +612,69 @@ function startReading() {
     a.z = sensor.z
   });
   sensor.start();
+}
+
+let audio = null;
+let audioContext;
+let source;
+let panner;
+let filter;
+
+function initializeAudio() {
+  audio = document.getElementById('audio');
+
+  audio.addEventListener('play', handlePlay);
+
+  audio.addEventListener('pause', handlePause);
+}
+
+function handlePlay() {
+  console.log('play');
+  if (!audioContext) {
+    audioContext = new AudioContext();
+    source = audioContext.createMediaElementSource(audio);
+    panner = audioContext.createPanner();
+    filter = audioContext.createBiquadFilter();
+
+    // Connect audio nodes
+    source.connect(panner);
+    panner.connect(filter);
+    filter.connect(audioContext.destination);
+
+    // Set filter parameters
+    filter.type = 'peaking';
+    filter.Q.value = 2;
+    filter.frequency.value = 500;
+    filter.gain.value = 20;
+
+    audioContext.resume();
+  }
+}
+
+function handlePause() {
+  console.log('pause');
+  audioContext.resume();
+}
+
+function toggleFilter() {
+  let filterCheckbox = document.getElementById('filterCheckbox');
+  if (filterCheckbox.checked) {
+    // Connect filter when checkbox is checked
+    panner.disconnect();
+    panner.connect(filter);
+    filter.connect(audioContext.destination);
+  } else {
+    // Disconnect filter when checkbox is unchecked
+    panner.disconnect();
+    panner.connect(audioContext.destination);
+  }
+}
+
+function startAudio() {
+  initializeAudio();
+
+  let filterCheckbox = document.getElementById('filterCheckbox');
+  filterCheckbox.addEventListener('change', toggleFilter);
+
+  audio.play();
 }
