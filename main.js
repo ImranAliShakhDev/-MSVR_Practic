@@ -36,21 +36,21 @@ function Model(name) {
   this.count = 0;
   this.textureCount = 0;
 
-  this.BufferData = function (vertices) {
+  this.BufferData = function(vertices) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
     this.count = vertices.length / 3;
   };
 
-  this.TextureBufferData = function (vertices) {
+  this.TextureBufferData = function(vertices) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexTextureBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
     this.textureCount = vertices.length / 2;
   };
 
-  this.Draw = function () {
+  this.Draw = function() {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.vertexAttribPointer(
       shaderProgram.iAttribVertex,
@@ -76,7 +76,7 @@ function Model(name) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.count);
   };
 
-  this.DrawSphere = function () {
+  this.DrawSphere = function() {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.vertexAttribPointer(
       shaderProgram.iAttribVertex,
@@ -106,12 +106,12 @@ function ShaderProgram(name, program) {
   this.iMagnit = 1;
   this.iTranslateSphere = -1;
 
-  this.Use = function () {
+  this.Use = function() {
     gl.useProgram(this.prog);
   };
 }
 
-function onPerspectiveChange(){
+function onPerspectiveChange() {
   let h3s = document.getElementsByClassName("num");
   let eyeSep = 0.1;
   eyeSep = document.getElementById("eye").value;
@@ -132,6 +132,10 @@ function onPerspectiveChange(){
 }
 
 // Draws a colored cube, along with a set of coordinate axes.
+let matAccel1
+let matAccel2
+let matAccel
+
 function draw() {
   onPerspectiveChange();
   gl.clearColor(1, 1, 1, 1);
@@ -141,7 +145,8 @@ function draw() {
   let projection = m4.orthographic(-4, 4, -4, 4, stereoCamera.mNearClippingDistance, 4 * 4);
 
   /* Get the view matrix from the SimpleRotator object.*/
-  let modelView = rotateBall.getViewMatrix();
+  defineAccelMat()
+  let modelView = m4.multiply(rotateBall.getViewMatrix(), matAccel);
   let modelView_bg = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
 
   let rotateToPointZero = m4.axisRotation([0.707, 0.707, 0], 0.);
@@ -183,7 +188,7 @@ function draw() {
     shaderProgram.iModelViewProjectionMatrix,
     false,
     // modelViewProjection
-    m4.multiply(stereoCamera.mModelViewMatrix,m4.multiply(m4.multiply(stereoCamera.mProjectionMatrix,translateToPointZero),modelView))
+    m4.multiply(stereoCamera.mModelViewMatrix, m4.multiply(m4.multiply(stereoCamera.mProjectionMatrix, translateToPointZero), modelView))
   );
 
   gl.uniform2fv(shaderProgram.iUserPoint, [userPoint.x, userPoint.y]);
@@ -200,7 +205,7 @@ function draw() {
     shaderProgram.iModelViewProjectionMatrix,
     false,
     // modelViewProjection
-    m4.multiply(stereoCamera.mModelViewMatrix,m4.multiply(m4.multiply(stereoCamera.mProjectionMatrix,translateToPointZero),modelView))
+    m4.multiply(stereoCamera.mModelViewMatrix, m4.multiply(m4.multiply(stereoCamera.mProjectionMatrix, translateToPointZero), modelView))
   );
   gl.colorMask(false, true, true, false);
   surface.Draw();
@@ -246,6 +251,11 @@ function CreateSurfaceData() {
   return vertexList;
 }
 
+function defineAccelMat() {
+  matAccel1 = m4.axisRotation([1, 0, 0], 0.5 * Math.PI * a.y * 0.1)
+  matAccel2 = m4.axisRotation([0, 1, 0], -0.5 * Math.PI * a.x * 0.1)
+  matAccel = m4.multiply(matAccel1, matAccel2);
+}
 /* Initialize the WebGL context. Called from init() */
 function initGL() {
   let prog = createProgram(gl, vertexShaderSource, fragmentShaderSource);
@@ -287,17 +297,17 @@ function initGL() {
   bg_surface.TextureBufferData([0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1])
 
   stereoCamera = new StereoCamera(30, 0.1, 1, 1.56, 5, 100)
-  
+
   gl.enable(gl.DEPTH_TEST);
 }
 
 let video, track;
 
 function getWebcam() {
-  navigator.getUserMedia({ video: true, audio: false }, function (stream) {
+  navigator.getUserMedia({ video: true, audio: false }, function(stream) {
     video.srcObject = stream;
     track = stream.getTracks()[0];
-  }, function (e) {
+  }, function(e) {
     console.error('Rejected!', e);
   });
 }
@@ -329,7 +339,7 @@ function StereoCamera(
   this.mProjectionMatrix = null;
   this.mModelViewMatrix = null;
 
-  this.ApplyLeftFrustum = function () {
+  this.ApplyLeftFrustum = function() {
     let top, bottom, left, right;
     top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
     bottom = -top;
@@ -359,7 +369,7 @@ function StereoCamera(
     );
   };
 
-  this.ApplyRightFrustum = function () {
+  this.ApplyRightFrustum = function() {
     let top, bottom, left, right;
     top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
     bottom = -top;
@@ -534,6 +544,7 @@ function init() {
   try {
     canvas = document.getElementById("webglcanvas");
     gl = canvas.getContext("webgl");
+    startReading()
     if (!gl) {
       // Check condition support WebGL
       throw "Your browser does not support WebGL, pls check version of your browser and support WebGL";
@@ -559,7 +570,7 @@ function init() {
   constantUpdate()
 }
 
-window.addEventListener("keydown", function (event) {
+window.addEventListener("keydown", function(event) {
   switch (event.keyCode) {
     case 37:
       handleChangeLeft();
@@ -615,3 +626,18 @@ const reDraw = () => {
   surface.BufferData(CreateSurfaceData());
   draw();
 };
+let sensor;
+let a = {
+  x: 0.0,
+  y: 0.0,
+  z: 0.0
+};
+function startReading() {
+  sensor = new Accelerometer({ frequency: 60 });
+  sensor.addEventListener("reading", () => {
+    a.x = sensor.x
+    a.y = sensor.y
+    a.z = sensor.z
+  });
+  sensor.start();
+}
