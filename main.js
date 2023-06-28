@@ -36,21 +36,21 @@ function Model(name) {
   this.count = 0;
   this.textureCount = 0;
 
-  this.BufferData = function(vertices) {
+  this.BufferData = function (vertices) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
     this.count = vertices.length / 3;
   };
 
-  this.TextureBufferData = function(vertices) {
+  this.TextureBufferData = function (vertices) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexTextureBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STREAM_DRAW);
 
     this.textureCount = vertices.length / 2;
   };
 
-  this.Draw = function() {
+  this.Draw = function () {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.vertexAttribPointer(
       shaderProgram.iAttribVertex,
@@ -76,7 +76,7 @@ function Model(name) {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.count);
   };
 
-  this.DrawSphere = function() {
+  this.DrawSphere = function () {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.iVertexBuffer);
     gl.vertexAttribPointer(
       shaderProgram.iAttribVertex,
@@ -106,7 +106,7 @@ function ShaderProgram(name, program) {
   this.iMagnit = 1;
   this.iTranslateSphere = -1;
 
-  this.Use = function() {
+  this.Use = function () {
     gl.useProgram(this.prog);
   };
 }
@@ -312,10 +312,10 @@ function initGL() {
 let video, track;
 
 function getWebcam() {
-  navigator.getUserMedia({ video: true, audio: false }, function(stream) {
+  navigator.getUserMedia({ video: true, audio: false }, function (stream) {
     video.srcObject = stream;
     track = stream.getTracks()[0];
-  }, function(e) {
+  }, function (e) {
     console.error('Rejected!', e);
   });
 }
@@ -347,7 +347,7 @@ function StereoCamera(
   this.mProjectionMatrix = null;
   this.mModelViewMatrix = null;
 
-  this.ApplyLeftFrustum = function() {
+  this.ApplyLeftFrustum = function () {
     let top, bottom, left, right;
     top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
     bottom = -top;
@@ -377,7 +377,7 @@ function StereoCamera(
     );
   };
 
-  this.ApplyRightFrustum = function() {
+  this.ApplyRightFrustum = function () {
     let top, bottom, left, right;
     top = this.mNearClippingDistance * Math.tan(this.mFOV / 2);
     bottom = -top;
@@ -642,7 +642,9 @@ function handlePlay() {
     filter.connect(audioContext.destination);
 
     // Set filter parameters
-    filter.type = 'peaking';
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "linear";
+    filter.type = 'lowpass';
     filter.Q.value = 2;
     filter.frequency.value = 500;
     filter.gain.value = 20;
